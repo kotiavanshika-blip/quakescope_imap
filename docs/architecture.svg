@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 330" font-family="Inter, Segoe UI, system-ui, Arial, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0d1326"/><stop offset="1" stop-color="#0a0f1f"/></linearGradient>
+    <linearGradient id="gApi" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5b8cff"/><stop offset="1" stop-color="#8b6cff"/></linearGradient>
+    <marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#9aa6bf"/></marker>
+  </defs>
+  <rect width="960" height="330" fill="url(#bg)"/>
+  <g fill="rgba(255,255,255,.05)" stroke="rgba(255,255,255,.16)" stroke-width="1.5">
+    <rect x="16"  y="70" width="150" height="80" rx="16"/>
+    <rect x="526" y="70" width="150" height="80" rx="16" stroke="#ffb547"/>
+    <rect x="776" y="70" width="150" height="80" rx="16" stroke="#36d1dc"/>
+    <rect x="246" y="228" width="200" height="56" rx="16" stroke-dasharray="6 5"/>
+  </g>
+  <rect x="266" y="70" width="160" height="80" rx="16" fill="url(#gApi)"/>
+  <g text-anchor="middle" font-size="16" font-weight="650" fill="#eef2fb">
+    <text x="91" y="106">Load generator</text><text x="346" y="106">QuakeScope API</text>
+    <text x="601" y="106">Prometheus</text><text x="851" y="106">Grafana</text>
+    <text x="346" y="254">USGS Earthquake API</text>
+  </g>
+  <g text-anchor="middle" font-size="12.5" fill="#9aa6bf">
+    <text x="91" y="128">Python script</text><text x="601" y="128">port 9090</text><text x="851" y="128">port 3000</text>
+    <text x="346" y="272">outside service</text>
+  </g>
+  <text x="346" y="128" text-anchor="middle" font-size="12.5" fill="#dfe6ff">FastAPI · port 8000</text>
+  <g stroke="#9aa6bf" stroke-width="1.8" marker-end="url(#a)" fill="none">
+    <line x1="170" y1="110" x2="262" y2="110"/>
+    <line x1="522" y1="110" x2="430" y2="110"/>
+    <line x1="772" y1="110" x2="680" y2="110"/>
+    <line x1="346" y1="154" x2="346" y2="224"/>
+  </g>
+  <g text-anchor="middle" font-size="12" fill="#c9d3ea">
+    <text x="216" y="92">sends</text><text x="216" y="130">requests</text>
+    <text x="476" y="92">reads</text><text x="476" y="130">/metrics</text><text x="476" y="144">every 5 s</text>
+    <text x="726" y="92">asks for</text><text x="726" y="130">the numbers</text>
+  </g>
+  <text x="360" y="196" font-size="12" fill="#c9d3ea">fetches data (cached 60 s)</text>
+  <text x="24" y="316" font-size="12.5" fill="#6b7792">Arrows start at the part that begins the conversation. Prometheus pulls from the API; the API never pushes.</text>
+</svg>

@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QuakeScope — API Telemetry Dashboard</title>
+<meta name="description" content="QuakeScope: a small earthquake API watched with Prometheus and Grafana. Request rate, latency and error rate, all in Docker Compose.">
+<style>
+  :root{
+    --bg:#0a0f1f; --bg2:#0d1326; --card:rgba(255,255,255,.04);
+    --line:rgba(255,255,255,.12); --txt:#eef2fb; --muted:#9aa6bf;
+    --accent:#5b8cff; --accent2:#8b6cff; --amber:#ffb547; --teal:#36d1dc;
+    --radius:16px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:linear-gradient(160deg,var(--bg2),var(--bg));
+    color:var(--txt); font:16px/1.65 Inter,"Segoe UI",system-ui,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--accent); text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:1040px; margin:0 auto; padding:0 20px}
+  header.hero{text-align:center; padding:72px 20px 40px}
+  .badge{display:inline-block; font-size:13px; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--muted); border:1px solid var(--line); border-radius:999px; padding:6px 14px; margin-bottom:22px}
+  h1{font-size:clamp(34px,6vw,58px); line-height:1.1; margin:0 0 16px;
+    background:linear-gradient(90deg,var(--accent),var(--accent2)); -webkit-background-clip:text; background-clip:text; color:transparent}
+  .sub{font-size:clamp(16px,2.4vw,21px); color:var(--muted); max-width:720px; margin:0 auto 28px}
+  .cta{display:flex; gap:12px; justify-content:center; flex-wrap:wrap}
+  .btn{display:inline-block; padding:12px 22px; border-radius:12px; font-weight:600; border:1px solid var(--line)}
+  .btn.primary{background:linear-gradient(90deg,var(--accent),var(--accent2)); color:#fff; border:none}
+  .btn:hover{text-decoration:none; transform:translateY(-1px)}
+  .btn{transition:transform .15s ease}
+  section{padding:46px 0; border-top:1px solid var(--line)}
+  h2{font-size:clamp(24px,3.6vw,34px); margin:0 0 8px}
+  .lead{color:var(--muted); max-width:760px; margin:0 0 26px}
+  .grid{display:grid; gap:18px}
+  .cols-3{grid-template-columns:repeat(3,1fr)}
+  .cols-2{grid-template-columns:repeat(2,1fr)}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:22px}
+  .card h3{margin:0 0 6px; font-size:18px}
+  .card p{margin:0; color:var(--muted); font-size:15px}
+  .arch{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:18px}
+  .arch svg{width:100%; height:auto; border-radius:10px}
+  .steps{counter-reset:s; display:grid; gap:14px}
+  .step{display:flex; gap:16px; align-items:flex-start; background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:18px 20px}
+  .step::before{counter-increment:s; content:counter(s); flex:0 0 36px; height:36px; display:grid; place-items:center;
+    border-radius:50%; background:linear-gradient(90deg,var(--accent),var(--accent2)); color:#fff; font-weight:700}
+  .step div{color:var(--muted)}
+  .step b{color:var(--txt)}
+  figure{margin:0}
+  .shot{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); overflow:hidden}
+  .shot img{width:100%; display:block; background:#060912}
+  .shot figcaption{padding:12px 16px; font-size:14px; color:var(--muted)}
+  .shot figcaption b{color:var(--txt)}
+  .tag{display:inline-block; font-size:12px; padding:2px 9px; border-radius:999px; margin-right:6px}
+  .tag.ok{background:rgba(54,209,220,.14); color:var(--teal)}
+  .tag.err{background:rgba(255,87,87,.16); color:#ff8a8a}
+  .tag.slow{background:rgba(255,181,71,.16); color:var(--amber)}
+  .stack{display:flex; flex-wrap:wrap; gap:10px; margin-top:6px}
+  .chip{border:1px solid var(--line); border-radius:999px; padding:7px 14px; font-size:14px; color:var(--muted)}
+  table{width:100%; border-collapse:collapse; font-size:15px}
+  th,td{text-align:left; padding:10px 12px; border-bottom:1px solid var(--line)}
+  th{color:var(--txt)} td{color:var(--muted)}
+  code{background:rgba(255,255,255,.06); padding:2px 6px; border-radius:6px; font-size:.92em}
+  pre{background:#060912; border:1px solid var(--line); border-radius:12px; padding:16px; overflow:auto; font-size:14px}
+  footer{padding:40px 20px 60px; text-align:center; color:var(--muted); border-top:1px solid var(--line)}
+  .note{background:rgba(255,181,71,.08); border:1px solid rgba(255,181,71,.3); border-radius:12px; padding:14px 18px; color:#f0d9b0; font-size:14px}
+  @media(max-width:760px){ .cols-3,.cols-2{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="badge">Grafana Dashboard for API Telemetry</span>
+    <h1>QuakeScope</h1>
+    <p class="sub">A small web API that serves recent earthquakes — watched live with Prometheus and Grafana. It measures <b>request rate</b>, <b>latency</b> and <b>error rate</b>, all started with one Docker command.</p>
+    <div class="cta">
+      <a class="btn primary" href="#screenshots">See the dashboard</a>
+      <a class="btn" href="https://github.com/kotiavanshika-blip/quakescope_IMAP_" target="_blank" rel="noopener">View source on GitHub</a>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section id="what">
+    <h2>What it does</h2>
+    <p class="lead">QuakeScope serves earthquake data from the USGS API, then counts and times every request it answers. Prometheus collects those numbers every 5 seconds and Grafana draws them — the classic <b>RED method</b>: Rate, Errors, Duration.</p>
+    <div class="grid cols-3">
+      <div class="card"><h3>📈 Request rate</h3><p>How busy the API is, in requests per second, overall and per endpoint.</p></div>
+      <div class="card"><h3>⚠️ Error rate</h3><p>The share of requests failing with a 5xx status, tracked over time.</p></div>
+      <div class="card"><h3>⏱️ Latency</h3><p>p50, p95 and p99 — because an average hides the slow requests.</p></div>
+    </div>
+  </section>
+
+  <section id="architecture">
+    <h2>How it fits together</h2>
+    <p class="lead">A load generator sends steady traffic so the graphs are never empty. The API answers and publishes its numbers. Prometheus <b>pulls</b> those numbers; the API never pushes.</p>
+    <div class="arch">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 330" font-family="Inter, Segoe UI, system-ui, Arial, sans-serif">
+        <defs>
+          <linearGradient id="gApi" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5b8cff"/><stop offset="1" stop-color="#8b6cff"/></linearGradient>
+          <marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#9aa6bf"/></marker>
+        </defs>
+        <g fill="rgba(255,255,255,.05)" stroke="rgba(255,255,255,.16)" stroke-width="1.5">
+          <rect x="16"  y="70" width="150" height="80" rx="16"/>
+          <rect x="526" y="70" width="150" height="80" rx="16" stroke="#ffb547"/>
+          <rect x="776" y="70" width="150" height="80" rx="16" stroke="#36d1dc"/>
+          <rect x="246" y="228" width="200" height="56" rx="16" stroke-dasharray="6 5"/>
+        </g>
+        <rect x="266" y="70" width="160" height="80" rx="16" fill="url(#gApi)"/>
+        <g text-anchor="middle" font-size="16" font-weight="650" fill="#eef2fb">
+          <text x="91" y="106">Load generator</text><text x="346" y="106">QuakeScope API</text>
+          <text x="601" y="106">Prometheus</text><text x="851" y="106">Grafana</text>
+          <text x="346" y="254">USGS Earthquake API</text>
+        </g>
+        <g text-anchor="middle" font-size="12.5" fill="#9aa6bf">
+          <text x="91" y="128">Python script</text><text x="601" y="128">port 9090</text><text x="851" y="128">port 3000</text>
+          <text x="346" y="272">outside service</text>
+        </g>
+        <text x="346" y="128" text-anchor="middle" font-size="12.5" fill="#dfe6ff">FastAPI · port 8000</text>
+        <g stroke="#9aa6bf" stroke-width="1.8" marker-end="url(#a)" fill="none">
+          <line x1="170" y1="110" x2="262" y2="110"/>
+          <line x1="522" y1="110" x2="430" y2="110"/>
+          <line x1="772" y1="110" x2="680" y2="110"/>
+          <line x1="346" y1="154" x2="346" y2="224"/>
+        </g>
+        <g text-anchor="middle" font-size="12" fill="#c9d3ea">
+          <text x="216" y="92">sends</text><text x="216" y="130">requests</text>
+          <text x="476" y="92">reads</text><text x="476" y="130">/metrics</text><text x="476" y="144">every 5 s</text>
+          <text x="726" y="92">asks for</text><text x="726" y="130">the numbers</text>
+        </g>
+        <text x="360" y="196" font-size="12" fill="#c9d3ea">fetches data (cached 60 s)</text>
+        <text x="24" y="316" font-size="12.5" fill="#6b7792">Arrows start at the part that begins the conversation. Prometheus pulls from the API; the API never pushes.</text>
+      </svg>
+    </div>
+  </section>
+
+  <section id="flow">
+    <h2>The path of one request</h2>
+    <div class="steps">
+      <div class="step"><div>A client asks the API for something like <code>/earthquakes/recent</code>. A <b>middleware</b> sees it first and starts a stopwatch.</div></div>
+      <div class="step"><div>The API answers — reusing a saved copy for 60 seconds (a <b>cache</b>) or asking USGS. The middleware stops the clock and records the time and status code.</div></div>
+      <div class="step"><div>The API exposes these counters as plain text at <code>/metrics</code>.</div></div>
+      <div class="step"><div><b>Prometheus</b> visits <code>/metrics</code> every 5 seconds (a <i>scrape</i>) and stores each value with a timestamp.</div></div>
+      <div class="step"><div><b>Grafana</b> asks Prometheus for the numbers with PromQL and draws the dashboard.</div></div>
+    </div>
+  </section>
+
+  <section id="screenshots">
+    <h2>The live website</h2>
+    <p class="lead">A two-page site shows the same data as Grafana, plus buttons that break the API on purpose so you can watch the graphs react.</p>
+    <div class="grid cols-2">
+      <figure class="shot">
+        <img src="screenshots/overview.png" alt="Overview page with architecture diagram" loading="lazy">
+        <figcaption><b>Overview</b> — the project and its architecture diagram.</figcaption>
+      </figure>
+      <figure class="shot">
+        <img src="screenshots/live-normal.png" alt="Live graphs during normal traffic" loading="lazy">
+        <figcaption><span class="tag ok">normal</span> <b>Live graphs</b> — steady traffic, error rate at 0%.</figcaption>
+      </figure>
+      <figure class="shot">
+        <img src="screenshots/live-errors.png" alt="Live graphs while causing errors" loading="lazy">
+        <figcaption><span class="tag err">errors</span> After <b>Cause errors</b> — the error rate jumps.</figcaption>
+      </figure>
+      <figure class="shot">
+        <img src="screenshots/live-slow.png" alt="Live graphs while causing slow requests" loading="lazy">
+        <figcaption><span class="tag slow">slow</span> After <b>Cause slow requests</b> — p95 and p99 latency rise, errors stay flat.</figcaption>
+      </figure>
+    </div>
+    <p class="note" style="margin-top:22px">These are real captures from a test run with generated traffic. The graphs update live only when the full stack is running locally — see “Run it yourself” below.</p>
+  </section>
+
+  <section id="run">
+    <h2>Run it yourself</h2>
+    <p class="lead">Everything starts with one command. You need Docker Desktop.</p>
+    <pre><code>git clone https://github.com/kotiavanshika-blip/quakescope_IMAP_.git
+cd quakescope_IMAP_
+docker compose up -d --build</code></pre>
+    <p class="lead" style="margin-top:20px">Then open, after about a minute:</p>
+    <table>
+      <tr><th>Address</th><th>What you see</th></tr>
+      <tr><td><code>localhost:8081</code></td><td>The website — start here, then open Live graphs</td></tr>
+      <tr><td><code>localhost:3000</code></td><td>The Grafana dashboard (no login needed)</td></tr>
+      <tr><td><code>localhost:9090/targets</code></td><td>Prometheus — the API should say UP</td></tr>
+      <tr><td><code>localhost:8000/metrics</code></td><td>The raw numbers the API publishes</td></tr>
+    </table>
+  </section>
+
+  <section id="stack">
+    <h2>Built with</h2>
+    <div class="stack">
+      <span class="chip">Python</span><span class="chip">FastAPI</span><span class="chip">prometheus-client</span>
+      <span class="chip">Prometheus</span><span class="chip">Grafana</span><span class="chip">Docker Compose</span>
+      <span class="chip">nginx</span><span class="chip">Chart.js</span><span class="chip">pytest</span>
+    </div>
+    <h3 style="margin-top:30px">The team</h3>
+    <table>
+      <tr><th>Member</th><th>Role</th></tr>
+      <tr><td>Simran</td><td>API developer — endpoints, metrics, cache, tests</td></tr>
+      <tr><td>Janak</td><td>Prometheus & Docker — compose, Dockerfiles, config</td></tr>
+      <tr><td>Prachi</td><td>Grafana dashboard — data source, panels, PromQL</td></tr>
+      <tr><td>Vanshika</td><td>Website, traffic & docs</td></tr>
+    </table>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    QuakeScope — a student project on API observability.<br>
+    <a href="https://github.com/kotiavanshika-blip/quakescope_IMAP_" target="_blank" rel="noopener">Source code on GitHub</a>
+  </div>
+</footer>
+
+</body>
+</html>

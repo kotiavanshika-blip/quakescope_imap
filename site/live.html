@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#080c18">
+  <title>QuakeScope: Live graphs</title>
+  <link rel="icon" href="data:,">
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="site"></header>
+<main>
+  <section class="page-head">
+    <span class="eyebrow rv">Live</span>
+    <h1 class="rv" style="--d:70ms">Live graphs</h1>
+    <p class="lead rv" style="--d:140ms">Request rate, latency and error rate, read from Prometheus every 5 seconds. The same data is on the <a data-port="3000" data-path="/" href="#">Grafana dashboard</a>.</p>
+    <span class="status-pill" id="pill"><i></i><span id="pillText">Connecting</span></span>
+  </section>
+
+  <div class="stats">
+    <div class="stat rv" id="sRate"><div class="l">Requests per second</div><div class="n" id="nRate">&ndash;</div><div class="t">last 30 seconds</div></div>
+    <div class="stat lat rv" id="sP95" style="--d:80ms"><div class="l">p95 latency</div><div class="n" id="nP95">&ndash;</div><div class="t">95 out of 100 requests are faster</div></div>
+    <div class="stat err rv" id="sErr" style="--d:160ms"><div class="l">Error rate</div><div class="n" id="nErr">&ndash;</div><div class="t">of requests failing</div></div>
+  </div>
+  <p class="offline" id="offline" hidden>No data yet. Check that all containers are running with <code>docker compose ps</code>, then wait a few seconds.</p>
+
+  <div class="charts">
+    <div class="card rv wide">
+      <div class="head"><h2>Request rate</h2><span class="muted small">requests per second</span></div>
+      <div class="chart"><canvas id="cRate"></canvas></div>
+      <p class="muted small">How many requests the API handles each second, measured over the last 30 seconds.</p>
+    </div>
+    <div class="card rv">
+      <div class="head"><h2>Latency</h2><span class="muted small">p50 / p95 / p99</span></div>
+      <div class="chart"><canvas id="cLat"></canvas></div>
+      <p class="muted small"><b>p50</b>: half of the requests are faster. <b>p95</b>: 95 out of 100 are faster. <b>p99</b>: 99 out of 100 are faster. Slow requests show up in p95 and p99 first.</p>
+    </div>
+    <div class="card rv" style="--d:80ms">
+      <div class="head"><h2>Error rate</h2><span class="muted small">% of requests</span></div>
+      <div class="chart"><canvas id="cErr"></canvas></div>
+      <p class="muted small">The share of requests that fail with a server error (HTTP status 500 to 599).</p>
+    </div>
+  </div>
+
+  <div class="card break rv">
+    <h2>Break it on purpose</h2>
+    <p>Each button sends test traffic to our own API for 30 seconds so you can watch the graphs react. Expect a delay of 5 to 15 seconds, because Prometheus collects new numbers every 5 seconds.</p>
+    <div class="breakbtns">
+      <button class="btn red" id="bErr">Cause errors</button>
+      <button class="btn orange" id="bSlow">Cause slow requests</button>
+    </div>
+    <div class="progress" id="prog"><i></i></div>
+    <div id="status" role="status" aria-live="polite"></div>
+    <div class="explain">
+      <div><b>Cause errors</b> sends many requests to <code>/test/error</code>, which fails 9 times out of 10. Watch the error rate jump.</div>
+      <div><b>Cause slow requests</b> sends requests to <code>/test/slow</code>, which waits 2 seconds. Watch p95 and p99 rise. The error rate stays flat, because slow requests still succeed.</div>
+    </div>
+  </div>
+</main>
+<footer></footer>
+<script src="vendor/chart.umd.js"></script>
+<script src="js/common.js"></script>
+<script src="js/live.js"></script>
+</body>
+</html>
