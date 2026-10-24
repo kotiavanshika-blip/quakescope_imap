@@ -1,0 +1,15 @@
+# Prometheus pulls ("scrapes") metrics from each target every 5 seconds.
+global:
+  scrape_interval: 5s
+
+scrape_configs:
+  # Our API. "api" is the service name in docker-compose.yml.
+  - job_name: quakescope-api
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["api:8000"]
+
+  # Prometheus also scrapes itself (handy to check things are working).
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
